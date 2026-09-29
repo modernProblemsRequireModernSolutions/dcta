@@ -14,35 +14,6 @@ If CodeBuddy supports project "rules" (a rules file loaded into every chat), put
 
 ---
 
-## Which tool, and what to attach
-- **CodeBuddy builds the MVP.** It's the coding agent that works inside your project folder and edits many files at once. All of Prompts 0–10 and 7B go here.
-- **WorkBuddy does the office work.** Tencent describes it as a desktop agent for documents, research, spreadsheets and presentations, and says it is *not* mainly meant for code projects. Give it read access to your project folder and use it for research, the submission write-up, the video script and the Demo Day slides (see "WorkBuddy prompts" below). Using both tools, with chat screenshots from each, gives you stronger "proof of product usage".
-- **Yes, attach the spec to CodeBuddy every time.** `docs/SPEC.md` is the only memory the agent has of your design, security rules and day plan. Don't attach this prompts file. It's your script: you paste one prompt at a time from it.
-
-## Kickoff message (the very first thing you send, before Prompt 0)
-```
-@docs/SPEC.md
-You are my senior engineer for a 16-day hackathon build. The spec is the source of truth — if anything I ask later conflicts with §2 (non-negotiable rules) or §11 (Scam Circuit Breaker), stop and tell me instead of doing it.
-Working rules for this whole project:
-- Work in small steps; after each step tell me exactly how to run and verify it.
-- Never put secrets in code; use .env and keep .env.example updated.
-- Keep a running docs/DEVLOG.md: date, Day number, what you built, key decisions, problems + fixes. (I'll use this for the submission's "build approach" section.)
-- Keep docs/PROMPT_CATALOG.md updated with every LLM system prompt the app uses (parser, clarifier, validator, scam classifier), its purpose and its output schema.
-- When unsure, ask me a short question rather than guessing.
-Reply "Ready" plus a 5-line summary of the project, then wait for my next prompt.
-```
-
-## Fix-it template (use whenever something breaks)
-```
-@docs/SPEC.md
-We're on Day <n>, Prompt <x>. Expected: <what the Done-when line says>.
-Actual: <what happened>. Error / terminal output:
-<paste>
-Find the root cause, fix it with the smallest change, and tell me how to re-verify. Don't touch unrelated files.
-```
-
----
-
 ### Prompt 0: Plan only (no code yet)
 ```
 @docs/SPEC.md
@@ -145,32 +116,10 @@ Add a test that calls /execute with a valid-looking draft but a missing/forged s
 1. Implement all risk rules in spec §7 inside the gateway (single source of truth). Show risk tier on the draft card before signing.
 2. STEP_UP flow: after biometric signing, show a mock out-of-band OTP screen ("Enter the 6-digit code sent to your DBS token" — display the code in a dev-only toast). Gateway requires both.
 3. KYC: user "Test Pending" can ask for balances but any transaction draft is blocked with a friendly explanation.
-4. Replace the audit stub with the hash-chained log from spec §8. Log every event type listed in spec §2 rule 10.
+4. Replace the audit stub with the hash-chained log from spec §8. Log every event type listed in spec §2 rule 9.
 5. Build /audit admin page: filter by session/user/event type, show chain, "Verify chain" button. Add a dev-only "tamper a row" button to demo detection.
 ```
 **Done when:** a S$6,000 transfer triggers step-up, and tampering with a row makes Verify chain fail.
-
-### Prompt 7B: USP: Scam Circuit Breaker (Day 10)
-```
-@docs/SPEC.md
-We're on Day 10. Implement the USP in spec §11 (Scam Circuit Breaker) exactly, respecting non-negotiable rule 9 (AI can raise caution, never lower it).
-1. Shared scam-signal module in packages/shared: deterministic signals (payee age, no history, amount as % of source balance, draining multiple accounts, repeated transfers to same new payee, unusual hour) with weights and human-readable evidence strings.
-2. Agent side: LLM typology classifier (separate call, own system prompt, transcript inside <user_input> delimiters, JSON output validated by zod) returning { typology, conversational_signals[], confidence }. Typologies: GOVT_IMPERSONATION, BANK_IMPERSONATION, SAFE_ACCOUNT, INVESTMENT, JOB_TASK, ROMANCE, PHISHING, NONE. Phrases like "skip the check / I know it's not a scam" must INCREASE the score.
-3. Combine into draft.scam {score, tier CLEAR|NUDGE|PAUSE|HOLD, typology, signals}. Gateway recomputes the deterministic part on /intent and /execute and takes the STRICTER tier; it must reject /execute for a HOLD draft even with a valid biometric signature.
-4. UI:
-   - NUDGE: one-line tip on the draft card.
-   - PAUSE: "Safety Check" sheet shown BEFORE the biometric prompt — 2–3 calm tappable questions chosen by typology, plus top-3 plain-English reasons. Scam-matching answer → HOLD.
-   - HOLD: cooling-off screen (24h; DEMO_MODE=2 min) with countdown, Cancel button, "If you're being told to hurry, that's the scam" explainer, ScamShield 1799 + DBS fraud hotline. The same session cannot release it.
-   - Release paths: mock "DBS officer call-back" admin action, or Trusted Contact approval page (/trusted/approve/:token) showing only non-sensitive details.
-5. Seed "Inspector Tan (SPF)" payee added 20 minutes ago and Trusted Contact "Jia Hui (sister)" per spec §6.
-6. Log every signal, tier change, Safety Check answer, hold and release to the hash-chained audit.
-Tests (Vitest):
-- "Send 10k from savings to Inspector Tan, the police said it's a safe account, I must do it now" → tier HOLD, /execute rejected even with valid signature.
-- Same amount to Mum (long-standing payee), neutral wording → CLEAR or NUDGE, no added friction.
-- LLM classifier mocked to return NONE for the scam text → gateway deterministic signals still keep tier ≥ PAUSE.
-- "It's not a scam, skip the check" → score increases.
-```
-**Done when:** the scam demo sentence ends in HOLD with no balance change, the Mum transfer goes through smoothly, and all 4 tests pass.
 
 ### Prompt 8: Prompt-injection shield + red-team suite
 ```
@@ -211,90 +160,23 @@ Prepare for submission:
 - Draft docs/SUBMISSION.md with: title, <10-word blurb, overview (scenarios/users/value), pain points, solution design (business + technical, how prompts drive generation), business value with numbers from METRICS.md, responsible-AI section, and a "How we used CodeBuddy" section.
 ```
 
-## WorkBuddy prompts (research, write-ups, video, pitch)
-Before you start, authorise WorkBuddy to read your project folder so it can see `docs/`. Pick the strongest reasoning model it offers. Run each prompt below as a separate task.
-
-**WB-1: Pain-point research (Day 2–3, feeds the Business Value and Insights sections)**
-```
-Research and cite (with links and dates) for Singapore, most recent year available:
-1. Total reported scam losses and number of cases (Singapore Police Force annual/mid-year scam statistics), and the share that were self-authorised transfers.
-2. The top scam typologies by losses (e.g. government-official impersonation, investment, job, phishing).
-3. What the MAS/IMDA Shared Responsibility Framework requires of banks (cooling-off, alerts, kill switch).
-4. Any published stats on mobile banking app task completion time or steps, or on voice banking adoption in Asia.
-Save as docs/RESEARCH.md: a short table of numbers with sources, then 5 bullet insights relevant to a voice banking agent with scam protection. Flag any number you could not verify from an official source.
-```
-
-**WB-2: Submission pack (Day 15)**
-Run Prompt 11 below in WorkBuddy instead of CodeBuddy, adding `docs/RESEARCH.md` to the list of source files.
-
-**WB-3: Demo video script and shot list (Day 15)**
-```
-Read docs/SUBMISSION.md and the "Demo script" section of PROMPTS.md. Write a 6–7 minute narration script with a timed shot list (timestamp | what's on screen | what I say), covering: project overview, core agent features and how it's used (happy path, validator catch, Scam Circuit Breaker, prompt-injection attack, step-up/KYC, audit chain), and a 60-second reflection on our build approach with 3 CodeBuddy/WorkBuddy tips from docs/DEVLOG.md. Spoken, natural English; no sentence over 20 words. Save as docs/VIDEO_SCRIPT.md.
-```
-
-**WB-4: Demo Day deck (only if you make the top 2, before 3 Nov)**
-```
-Using docs/SUBMISSION.md, docs/ARCHITECTURE.md, docs/METRICS.md and docs/RESEARCH.md, make a 10-slide pitch deck (16:9, red/white, no bank logos): 1 title + blurb, 2 the problem (menu friction + AI risk + scams), 3 our insight ("stop the rogue AI and the rogue caller"), 4 live-demo placeholder, 5 architecture/trust boundary, 6 Scam Circuit Breaker, 7 security results (red-team table), 8 business value in numbers, 9 roadmap to production at DBS, 10 team + thank you. Speaker notes of about 60 words per slide.
-```
-
-### Prompt 11: Submission pack (Day 15, WorkBuddy or CodeBuddy)
-```
-@docs/SPEC.md @docs/DEVLOG.md @docs/PROMPT_CATALOG.md @docs/METRICS.md @docs/ARCHITECTURE.md @tests/redteam/REPORT.md
-Write docs/SUBMISSION.md to match the hackathon form exactly, using ONLY facts from these files (mark anything unverified as TODO):
-1. Project title: "DCTA – Direct Conversational Transaction Agent" (suggest 2 alternatives).
-2. Short blurb: UNDER 10 WORDS. Give 3 options and count the words for each.
-3. Project Description, with these exact headings:
-   a. Project Overview — target scenarios, users, value proposition.
-   b. Real-World Scenario Insights — source of pain points (menu friction, rogue-agent risk, prompt injection, ambiguity, non-repudiation, authorised-push-payment scams), target audience, core problems solved.
-   c. Comprehensive Solution Design — business architecture, technical architecture (embed the Mermaid diagram), and "How prompts drive the AI": summarise each system prompt from PROMPT_CATALOG.md and how its output is schema-validated and constrained.
-   d. Business Value — quantified metrics from METRICS.md (taps, time, steps saved; % red-team attacks blocked; scam cases held) with assumptions stated.
-   e. Responsible AI — zero-trust design, human-in-the-loop, explainability, audit trail, Scam Circuit Breaker.
-4. "How we used CodeBuddy" — 5 concrete examples from DEVLOG.md plus 3 tool tips (for the video reflection).
-5. A checklist of every required and optional submission item with status.
-Keep it scannable: short paragraphs, tables where useful.
-```
-
-### Cover image (Miora, 16:9, 380×216 px)
-```
-Create a 16:9 cover image, clean fintech style, red and white palette on a warm off-white background.
-Centre: a smartphone showing a chat bubble with a sound-wave icon and a transaction card, next to a shield with a fingerprint.
-Bottom-left text: "DCTA" in bold and, smaller, "Speak it. AI drafts. You sign."
-Flat vector, minimal, high contrast, no bank logos, no real brand marks, no people's faces.
-Export at 1520×864 and at 380×216.
-```
-Check that the small text is still readable at 380×216. If it isn't, drop the tagline.
-
-### Submission checklist
-| Item | Required? | Produced by | Done |
-|---|---|---|---|
-| Project title | Yes | Prompt 11 | ☐ |
-| Short blurb (<10 words) | Yes | Prompt 11 | ☐ |
-| Project description (4 parts) | Yes | Prompt 11 ← Prompts 9, 10 + DEVLOG | ☐ |
-| CodeBuddy / WorkBuddy chat screenshots (≥3) | Yes | You: capture CodeBuddy at Prompts 0, 2, 6, 7B, 8 + one fix-it chat; WorkBuddy at WB-1, WB-2 | ☐ |
-| Cover image 16:9, 380×216 | Yes | Miora prompt above | ☐ |
-| Demo video 5–8 min | Optional | Demo script below | ☐ |
-| Live URL | Optional (bonus) | Prompt 10 deploy | ☐ |
-| Challenge-specific: architecture + trust-boundary diagram | Expected | Prompt 10 | ☐ |
-| Source code on GitHub | Good practice | You: push a public repo, with README | ☐ |
-
 ---
 
 ## Demo script (5–8 min video)
 1. **Hook (20 s):** "Three banking tasks, three separate menu flows, 40+ taps. Watch this."
 2. **Happy path (2 min):** say *"Pay my credit card bill, send fifty to John, and put whatever's above 2k in my savings into DBS shares."* → John clarification tap → validator green → biometric sign → balances update.
 3. **Validator catch (45 s):** show a frozen draft with the reason.
-4. **USP: Scam Circuit Breaker (1 min 15 s):** say *"Send ten thousand from savings to Inspector Tan, the police said it's a safe account, I must do it now."* → Safety Check with 3 plain-English reasons → user answers "yes, someone called me" → **HOLD** with a countdown → the Trusted Contact phone gets a notification. Line: *"Every other team stops a rogue AI. We also stop a rogue caller."*
-5. **Attack (1 min):** injection voice command + poisoned bill reference → banner, nothing moves. Then show the gateway rejecting an unsigned `/execute` call in the terminal.
-6. **Step-up + KYC (30 s):** S$6,000 transfer → OTP; pending-KYC user blocked.
-7. **Audit (45 s):** show the session trail, tamper a row, Verify chain fails.
-8. **Architecture + CodeBuddy reflection (1 min).**
+4. **Attack (1 min):** injection voice command + poisoned bill reference → banner, nothing moves. Then show the gateway rejecting an unsigned `/execute` call in the terminal.
+5. **Step-up + KYC (45 s):** S$6,000 transfer → OTP; pending-KYC user blocked.
+6. **Audit (45 s):** show the session trail, tamper a row, Verify chain fails.
+7. **Architecture + CodeBuddy reflection (1 min).**
 
 ## Schedule at a glance (full detail in SPEC §10)
 | Days | Dates | Phase | Prompts |
 |---|---|---|---|
 | 1–2 | 29–30 Sep | Architecture + draft JSON format + scaffold | 0, 1 |
 | 3–8 | 1–6 Oct | Main flow: ASR → split → follow-ups → validator → confirm/sign → mock payment → audit | 2, 3, 4, 5, 6 |
-| 9–12 | 7–10 Oct | Limits + audit, **USP Scam Circuit Breaker**, injection defences, 7 test scenarios incl. attacks + scam | 7, 7B, 8 |
-| 13–16 | 11–16 Oct | Metrics, live URL, architecture diagram, submission pack, cover, demo video, submit | 9, 10, 11 + Miora |
+| 9–12 | 7–10 Oct | Attack defences, limits, 5–6 test scenarios incl. attacks | 7, 8 |
+| 13–16 | 11–16 Oct | Metrics, live URL, architecture diagram, demo video, submit | 9, 10 |
 
-Days 7–8 (Prompt 6, WebAuthn signing) are the fiddliest part. If you slip, cut TTS and the large-text toggle, not the security features. The security features and the Scam Circuit Breaker are what DBS judges will look for.
+Days 7–8 (Prompt 6, WebAuthn signing) are the fiddliest part. If you slip, cut TTS and the large-text toggle, not the security features. The security is what DBS judges will look for.

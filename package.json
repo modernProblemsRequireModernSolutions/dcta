@@ -1,0 +1,26 @@
+{
+  "name": "dcta",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "services/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "concurrently -n gateway,web -c blue,green \"npm:dev:gateway\" \"npm:dev:web\"",
+    "dev:gateway": "npm -w @dcta/gateway run dev",
+    "dev:web": "npm -w @dcta/web run dev",
+    "seed": "npm -w @dcta/gateway run seed",
+    "build": "npm -w @dcta/shared run build && npm -w @dcta/gateway run build && npm -w @dcta/web run build",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "devDependencies": {
+    "concurrently": "^9.0.1",
+    "typescript": "^5.6.3",
+    "vitest": "^2.1.2"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
