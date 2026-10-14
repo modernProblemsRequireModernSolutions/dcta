@@ -14,6 +14,20 @@ a tamper-evident audit log.
 See `docs/SPEC.md` for the full spec (source of truth) and `docs/PROMPTS.md` for the
 prompt-by-prompt build plan.
 
+## Live UI demo
+
+**GitHub Pages:** https://modernproblemsrequiremodernsolutions.github.io/dcta/
+
+The Pages site is a credential-free, static **draft-only UI demonstration**. It can
+create mock drafts, accept browser speech where supported, resolve the two seeded
+John beneficiaries with one tap, and block common instruction-injection phrases.
+It cannot execute transactions or run the full Next.js/Express/WebAuthn architecture;
+that architecture remains in this repository and requires server-side hosting.
+
+- Consolidated project context: [`docs/PROJECT_CONTEXT.md`](docs/PROJECT_CONTEXT.md)
+- Submission-ready form copy: [`docs/SUBMISSION.md`](docs/SUBMISSION.md)
+- Cover artwork: [`docs/assets/dcta-cover-3840x2160.png`](docs/assets/dcta-cover-3840x2160.png)
+
 ## Architecture (zero-trust core)
 
 - **Agent (`apps/web`)** — untrusted zone. LLM only creates drafts; it has **no

@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta name="theme-color" content="#d92128" />
+  <title>DCTA — Direct Conversational Transaction Agent</title>
+  <meta name="description" content="Speak your banking; AI drafts it, only you sign it." />
+  <link rel="stylesheet" href="./styles.css" />
+</head>
+<body>
+  <main class="app-shell">
+    <header class="topbar">
+      <div>
+        <p class="eyebrow">DCTA · HACKATHON MVP</p>
+        <h1>AI drafts. You sign.</h1>
+      </div>
+      <span class="safe-pill">Draft-only demo</span>
+      <p class="subhead">A credential-free static UI demo. No real bank connection, real accounts, or money movement.</p>
+    </header>
+
+    <section class="conversation" id="conversation" aria-live="polite" aria-label="DCTA conversation">
+      <div class="bubble agent">
+        Hi Wei Jun. Tell me what you want to pay, transfer or invest. I will create reviewable drafts and ask when something is unclear.
+      </div>
+
+      <div class="account-strip" aria-label="Mock account balances">
+        <div><span>Savings</span><strong>S$12,400.00</strong></div>
+        <div><span>Current</span><strong>S$3,150.00</strong></div>
+      </div>
+
+      <div class="empty-state" id="empty-state">
+        <div class="shield">✓</div>
+        <h2>Nothing moves without you</h2>
+        <p>Try the suggested request. DCTA will split it into structured drafts and pause for ambiguity.</p>
+      </div>
+    </section>
+
+    <footer class="composer">
+      <button id="sample" class="sample" type="button">Try demo: “Pay my credit card bill and send fifty to John”</button>
+      <form id="form" class="input-row">
+        <label class="sr-only" for="input">Banking request</label>
+        <textarea id="input" rows="1" placeholder="Type a transfer, bill or investment…"></textarea>
+        <button class="mic" type="button" id="mic" aria-label="Use browser voice input" title="Browser voice input">●</button>
+        <button class="send" type="submit">Send</button>
+      </form>
+      <p class="hint" id="hint">Works best with the four sample phrases from the project specification.</p>
+    </footer>
+  </main>
+  <script src="./app.js"></script>
+</body>
+</html>

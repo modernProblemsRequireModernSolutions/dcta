@@ -1,2 +1,2 @@
-export * from "./schema.js";
-export * from "./canonical.js";
+export * from "./schema";
+export * from "./canonical";
